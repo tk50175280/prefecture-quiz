@@ -182,6 +182,7 @@
     }
 
     .map-label {
+      display: none;
       position: absolute;
       transform: translate(-50%, -50%);
       min-width: 74px;
@@ -343,7 +344,7 @@
 
 
     .mobile-answer-list {
-      display: none;
+      display: block;
       margin-top: 12px;
       border: 1px solid var(--border);
       border-radius: 14px;
@@ -358,7 +359,7 @@
 
     .mobile-answer-grid {
       display: grid;
-      grid-template-columns: 1fr;
+      grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
       gap: 8px;
     }
 
@@ -405,7 +406,7 @@
   <main class="app">
     <header>
       <h1>都道府県名・県庁所在地 漢字入力クイズ</h1>
-      <p class="lead">赤く塗られた県を見て、都道府県名と県庁所在地をどちらも漢字で入力します。</p>
+      <p class="lead">赤く塗られた県を見て、都道府県名と県庁所在地をどちらも漢字で入力します。回答後は地図の下に○×カードで表示します。</p>
     </header>
 
     <section class="panel" aria-label="クイズ">
@@ -445,8 +446,8 @@
           <object id="japanMapObject" data="map-full.svg" type="image/svg+xml" aria-label="日本の白地図"></object>
           <div class="label-layer" id="labelLayer"></div>
         </div>
-        <div class="mobile-answer-list" id="mobileAnswerList">
-          <h3>回答済み</h3>
+        <div class="mobile-answer-list answer-list" id="mobileAnswerList">
+          <h3>回答済みカード</h3>
           <div class="mobile-answer-grid" id="mobileAnswerGrid">
             まだ回答済みの問題はありません。
           </div>
@@ -492,7 +493,7 @@
       <p class="note">
         ※東京都の県庁所在地は、このクイズでは「新宿区」を正答にしつつ、「東京」も正解として受け付けます。<br>
         ※漢字入力の練習用なので、ひらがな回答は不正解になります。<br>
-        ※スマホでは、地図上の○×ラベルを非表示にし、地図の下に回答済みカードとして表示します。<br>
+        ※PC・スマホともに、地図上には色だけを表示し、○×の結果は地図の下の回答済みカードに表示します。<br>
         ※この白地図は学習用に簡略化されており、一部の離島は省略されています。<br>
         地図データ：Geolonia「japanese-prefectures」 / Based on Wikipedia「日本地図.svg」 / License: GFDL
       </p>
@@ -728,9 +729,7 @@
         if (!el) return;
         const allOk = status.prefOk && status.capitalOk;
         el.style.fill = allOk ? "#dcfce7" : "#ffedd5";
-        if (!isMobileView()) {
-          addMapLabel(item, status);
-        }
+        // PCでもスマホでも、地図上にはラベルを重ねず、下の回答済みカードに表示する。
       });
 
       if (index < questions.length && !checked) {
