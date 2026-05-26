@@ -341,7 +341,56 @@
       line-height: 1.7;
     }
 
+
+    .mobile-answer-list {
+      display: none;
+      margin-top: 12px;
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      background: #ffffff;
+      padding: 12px;
+    }
+
+    .mobile-answer-list h3 {
+      margin: 0 0 10px;
+      font-size: 16px;
+    }
+
+    .mobile-answer-grid {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 8px;
+    }
+
+    .mobile-answer-card {
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      background: #f8fafc;
+      padding: 10px;
+      line-height: 1.55;
+      font-weight: 800;
+    }
+
+    .mobile-answer-card.all-ok {
+      background: #ecfdf5;
+      border-color: #86efac;
+    }
+
+    .mobile-answer-card.has-miss {
+      background: #fff7ed;
+      border-color: #fdba74;
+    }
+
+    .mobile-answer-card small {
+      display: block;
+      color: var(--muted);
+      font-weight: 600;
+      margin-top: 3px;
+    }
+
     @media (max-width: 720px) {
+      .mobile-answer-list { display: block; }
+      .map-label { display: none; }
       .answers { grid-template-columns: 1fr; }
       .topbar { align-items: stretch; }
       select, button { width: 100%; }
@@ -396,6 +445,12 @@
           <object id="japanMapObject" data="map-full.svg" type="image/svg+xml" aria-label="日本の白地図"></object>
           <div class="label-layer" id="labelLayer"></div>
         </div>
+        <div class="mobile-answer-list" id="mobileAnswerList">
+          <h3>回答済み</h3>
+          <div class="mobile-answer-grid" id="mobileAnswerGrid">
+            まだ回答済みの問題はありません。
+          </div>
+        </div>
       </section>
 
       <div class="question">
@@ -437,6 +492,7 @@
       <p class="note">
         ※東京都の県庁所在地は、このクイズでは「新宿区」を正答にしつつ、「東京」も正解として受け付けます。<br>
         ※漢字入力の練習用なので、ひらがな回答は不正解になります。<br>
+        ※スマホでは、地図上の○×ラベルを非表示にし、地図の下に回答済みカードとして表示します。<br>
         ※この白地図は学習用に簡略化されており、一部の離島は省略されています。<br>
         地図データ：Geolonia「japanese-prefectures」 / Based on Wikipedia「日本地図.svg」 / License: GFDL
       </p>
@@ -623,6 +679,37 @@
       layer.appendChild(label);
     }
 
+
+    function renderMobileAnswerList() {
+      const grid = $("mobileAnswerGrid");
+      if (!grid) return;
+
+      const answered = Object.entries(answerStatus)
+        .map(([prefName, status]) => {
+          const item = findByPref(prefName);
+          return item ? { item, status } : null;
+        })
+        .filter(Boolean);
+
+      if (!answered.length) {
+        grid.textContent = "まだ回答済みの問題はありません。";
+        return;
+      }
+
+      grid.innerHTML = answered.map(({ item, status }) => {
+        const allOk = status.prefOk && status.capitalOk;
+        return `<div class="mobile-answer-card ${allOk ? "all-ok" : "has-miss"}">
+          <div><span class="${markClass(status.prefOk)}">${markSymbol(status.prefOk)}</span>：${item.pref}</div>
+          <div><span class="${markClass(status.capitalOk)}">${markSymbol(status.capitalOk)}</span>：${item.capital}</div>
+          <small>${item.area}</small>
+        </div>`;
+      }).join("");
+    }
+
+    function isMobileView() {
+      return window.matchMedia("(max-width: 720px)").matches;
+    }
+
     function renderMap() {
       if (!mapReady) return;
       clearLabels();
@@ -641,7 +728,9 @@
         if (!el) return;
         const allOk = status.prefOk && status.capitalOk;
         el.style.fill = allOk ? "#dcfce7" : "#ffedd5";
-        addMapLabel(item, status);
+        if (!isMobileView()) {
+          addMapLabel(item, status);
+        }
       });
 
       if (index < questions.length && !checked) {
@@ -649,6 +738,8 @@
         const el = getPrefElement(current.code);
         if (el) el.style.fill = "#fecaca";
       }
+
+      renderMobileAnswerList();
     }
 
     function start(mode = $("modeSelect").value) {
