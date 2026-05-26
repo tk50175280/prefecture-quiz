@@ -1,0 +1,811 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>都道府県名・県庁所在地 漢字入力クイズ</title>
+  <style>
+    :root {
+      --bg: #f6f8fb;
+      --card: #ffffff;
+      --text: #1f2937;
+      --muted: #6b7280;
+      --blue: #2563eb;
+      --green: #16a34a;
+      --red: #dc2626;
+      --orange: #f59e0b;
+      --border: #dbe3ef;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: linear-gradient(180deg, #f8fbff 0%, var(--bg) 100%);
+      color: var(--text);
+    }
+
+    .app {
+      width: min(1120px, calc(100% - 24px));
+      margin: 24px auto;
+    }
+
+    header {
+      text-align: center;
+      margin-bottom: 18px;
+    }
+
+    h1 {
+      margin: 0 0 8px;
+      font-size: clamp(26px, 5vw, 44px);
+      letter-spacing: 0.03em;
+    }
+
+    .lead {
+      margin: 0;
+      color: var(--muted);
+      font-size: 15px;
+      line-height: 1.7;
+    }
+
+    .panel {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 22px;
+      box-shadow: 0 10px 30px rgba(15, 23, 42, 0.08);
+      padding: 22px;
+    }
+
+    .topbar {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 16px;
+    }
+
+    .status {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      align-items: center;
+      font-size: 14px;
+      color: var(--muted);
+    }
+
+    .pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      border: 1px solid var(--border);
+      border-radius: 999px;
+      padding: 8px 12px;
+      background: #f9fafb;
+    }
+
+    select, button, input { font: inherit; }
+
+    select {
+      border: 1px solid var(--border);
+      border-radius: 999px;
+      padding: 9px 12px;
+      background: #fff;
+    }
+
+    .progress-wrap {
+      height: 12px;
+      background: #e5e7eb;
+      border-radius: 999px;
+      overflow: hidden;
+      margin-bottom: 16px;
+    }
+
+    .progress {
+      height: 100%;
+      width: 0%;
+      background: linear-gradient(90deg, var(--blue), var(--green));
+      transition: width 0.25s ease;
+    }
+
+    .map-board {
+      border: 1px solid var(--border);
+      border-radius: 18px;
+      background: #f8fafc;
+      padding: 16px;
+      margin-bottom: 16px;
+    }
+
+    .map-board-title {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      flex-wrap: wrap;
+      align-items: center;
+      margin-bottom: 12px;
+    }
+
+    .map-board-title h2 {
+      font-size: 18px;
+      margin: 0;
+    }
+
+    .legend {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    .legend span {
+      display: inline-flex;
+      gap: 5px;
+      align-items: center;
+    }
+
+    .box {
+      width: 14px;
+      height: 14px;
+      border: 1px solid #94a3b8;
+      border-radius: 4px;
+      background: #fff;
+    }
+
+    .box.current { background: #fecaca; border-color: var(--red); }
+    .box.done { background: #dcfce7; border-color: var(--green); }
+    .box.mixed { background: #ffedd5; border-color: var(--orange); }
+
+    .map-wrap {
+      position: relative;
+      background: #ffffff;
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      overflow: hidden;
+      min-height: 560px;
+    }
+
+    #japanMapObject {
+      width: 100%;
+      height: min(72vh, 760px);
+      min-height: 560px;
+      display: block;
+      border: 0;
+      background: #ffffff;
+    }
+
+    .label-layer {
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+    }
+
+    .map-label {
+      position: absolute;
+      transform: translate(-50%, -50%);
+      min-width: 74px;
+      padding: 4px 6px;
+      border-radius: 7px;
+      background: rgba(255, 255, 255, 0.92);
+      border: 1px solid #94a3b8;
+      box-shadow: 0 3px 10px rgba(15, 23, 42, 0.18);
+      font-size: 11px;
+      font-weight: 800;
+      line-height: 1.35;
+      text-align: left;
+      white-space: nowrap;
+    }
+
+    .map-label.all-ok { border-color: var(--green); }
+    .map-label.has-miss { border-color: var(--orange); }
+    .mark-ok { color: var(--green); }
+    .mark-ng { color: var(--red); }
+
+    .question {
+      border-radius: 18px;
+      background: #f8fafc;
+      border: 1px solid var(--border);
+      padding: 20px;
+      margin-bottom: 16px;
+    }
+
+    .question-label {
+      color: var(--blue);
+      font-weight: 800;
+      margin-bottom: 8px;
+      font-size: 18px;
+    }
+
+    .question-main {
+      font-size: clamp(22px, 4vw, 34px);
+      font-weight: 800;
+      line-height: 1.35;
+      margin: 0;
+    }
+
+    .hint {
+      margin-top: 10px;
+      color: var(--muted);
+      font-size: 14px;
+      line-height: 1.7;
+    }
+
+    .answers {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 14px;
+      margin-bottom: 16px;
+    }
+
+    label {
+      display: block;
+      font-weight: 700;
+      margin-bottom: 7px;
+    }
+
+    input {
+      width: 100%;
+      border: 2px solid var(--border);
+      border-radius: 14px;
+      padding: 14px 15px;
+      font-size: 20px;
+      background: #fff;
+      outline: none;
+    }
+
+    input:focus {
+      border-color: var(--blue);
+      box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.12);
+    }
+
+    .buttons {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-bottom: 14px;
+    }
+
+    button {
+      border: 0;
+      border-radius: 14px;
+      padding: 12px 18px;
+      font-weight: 800;
+      cursor: pointer;
+      color: white;
+      background: var(--blue);
+      transition: transform 0.06s ease, opacity 0.2s ease;
+    }
+
+    button:hover { opacity: 0.92; }
+    button:active { transform: translateY(1px); }
+
+    .secondary { background: #64748b; }
+    .success { background: var(--green); }
+    .warning { background: var(--orange); }
+    .danger { background: var(--red); }
+
+    .result {
+      min-height: 58px;
+      border-radius: 16px;
+      padding: 14px 16px;
+      background: #f9fafb;
+      border: 1px solid var(--border);
+      line-height: 1.7;
+      margin-bottom: 16px;
+    }
+
+    .result.good {
+      background: #ecfdf5;
+      border-color: #bbf7d0;
+      color: #14532d;
+    }
+
+    .result.bad {
+      background: #fef2f2;
+      border-color: #fecaca;
+      color: #7f1d1d;
+    }
+
+    .summary {
+      display: none;
+      margin-top: 18px;
+      border-top: 1px solid var(--border);
+      padding-top: 18px;
+    }
+
+    .summary h2 {
+      margin: 0 0 10px;
+      font-size: 24px;
+    }
+
+    .miss-list {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 10px;
+      margin-top: 12px;
+    }
+
+    .miss-card {
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 12px;
+      background: #fff;
+      line-height: 1.7;
+    }
+
+    .note {
+      margin-top: 18px;
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.7;
+    }
+
+    @media (max-width: 720px) {
+      .answers { grid-template-columns: 1fr; }
+      .topbar { align-items: stretch; }
+      select, button { width: 100%; }
+      .buttons button { flex: 1 1 100%; }
+      #japanMapObject { min-height: 430px; height: 430px; }
+      .map-wrap { min-height: 430px; }
+      .map-label { font-size: 9px; min-width: 60px; padding: 3px 4px; }
+    }
+  </style>
+</head>
+<body>
+  <main class="app">
+    <header>
+      <h1>都道府県名・県庁所在地 漢字入力クイズ</h1>
+      <p class="lead">赤く塗られた県を見て、都道府県名と県庁所在地をどちらも漢字で入力します。</p>
+    </header>
+
+    <section class="panel" aria-label="クイズ">
+      <div class="topbar">
+        <div class="status">
+          <span class="pill">問題 <strong id="currentNo">1</strong> / <strong id="totalNo">47</strong></span>
+          <span class="pill">両方正解 <strong id="score">0</strong></span>
+          <span class="pill">モード <strong id="modeName">全国</strong></span>
+        </div>
+        <select id="modeSelect" aria-label="出題モード">
+          <option value="all">全国</option>
+          <option value="hokkaido-tohoku">北海道・東北</option>
+          <option value="kanto">関東</option>
+          <option value="chubu">中部</option>
+          <option value="kinki">近畿</option>
+          <option value="chugoku-shikoku">中国・四国</option>
+          <option value="kyushu-okinawa">九州・沖縄</option>
+          <option value="missed">まちがえた問題だけ</option>
+        </select>
+      </div>
+
+      <div class="progress-wrap" aria-hidden="true">
+        <div class="progress" id="progress"></div>
+      </div>
+
+      <section class="map-board" aria-label="白地図">
+        <div class="map-board-title">
+          <h2>白地図</h2>
+          <div class="legend">
+            <span><i class="box current"></i>今の問題</span>
+            <span><i class="box done"></i>両方正解</span>
+            <span><i class="box mixed"></i>どちらか不正解</span>
+            <span><i class="box"></i>未出題</span>
+          </div>
+        </div>
+        <div class="map-wrap" id="mapWrap">
+          <object id="japanMapObject" data="map-full.svg" type="image/svg+xml" aria-label="日本の白地図"></object>
+          <div class="label-layer" id="labelLayer"></div>
+        </div>
+      </section>
+
+      <div class="question">
+        <div class="question-label" id="questionLabel">Q. 赤く塗られている県は？</div>
+        <p class="question-main" id="questionText">白地図で赤く塗られた場所を答えよう</p>
+        <div class="hint" id="hintText">ヒント：都道府県名と県庁所在地を両方とも漢字で入力しよう。</div>
+      </div>
+
+      <div class="answers">
+        <div>
+          <label for="prefInput">都道府県名</label>
+          <input id="prefInput" autocomplete="off" placeholder="例：福岡県" />
+        </div>
+        <div>
+          <label for="capitalInput">県庁所在地</label>
+          <input id="capitalInput" autocomplete="off" placeholder="例：福岡市" />
+        </div>
+      </div>
+
+      <div class="buttons">
+        <button id="checkBtn">答える</button>
+        <button id="hintBtn" class="warning">ヒント</button>
+        <button id="nextBtn" class="success">つぎへ</button>
+        <button id="restartBtn" class="secondary">最初から</button>
+      </div>
+
+      <div class="result" id="result">赤く塗られている県の、都道府県名と県庁所在地を入力してください。</div>
+
+      <div class="summary" id="summary">
+        <h2>結果</h2>
+        <p id="summaryText"></p>
+        <div class="buttons">
+          <button id="reviewBtn" class="danger">まちがえた問題だけ復習</button>
+          <button id="allAgainBtn" class="secondary">全国でもう一度</button>
+        </div>
+        <div class="miss-list" id="missList"></div>
+      </div>
+
+      <p class="note">
+        ※東京都の県庁所在地は、このクイズでは「新宿区」を正答にしつつ、「東京」も正解として受け付けます。<br>
+        ※漢字入力の練習用なので、ひらがな回答は不正解になります。<br>
+        ※この白地図は学習用に簡略化されており、一部の離島は省略されています。<br>
+        地図データ：Geolonia「japanese-prefectures」 / Based on Wikipedia「日本地図.svg」 / License: GFDL
+      </p>
+    </section>
+  </main>
+
+  <script>
+    const DATA = [
+      { pref: "北海道", capital: "札幌市", area: "北海道・東北", code: "1", aliases: [] },
+      { pref: "青森県", capital: "青森市", area: "北海道・東北", code: "2", aliases: [] },
+      { pref: "岩手県", capital: "盛岡市", area: "北海道・東北", code: "3", aliases: [] },
+      { pref: "宮城県", capital: "仙台市", area: "北海道・東北", code: "4", aliases: [] },
+      { pref: "秋田県", capital: "秋田市", area: "北海道・東北", code: "5", aliases: [] },
+      { pref: "山形県", capital: "山形市", area: "北海道・東北", code: "6", aliases: [] },
+      { pref: "福島県", capital: "福島市", area: "北海道・東北", code: "7", aliases: [] },
+      { pref: "茨城県", capital: "水戸市", area: "関東", code: "8", aliases: [] },
+      { pref: "栃木県", capital: "宇都宮市", area: "関東", code: "9", aliases: [] },
+      { pref: "群馬県", capital: "前橋市", area: "関東", code: "10", aliases: [] },
+      { pref: "埼玉県", capital: "さいたま市", area: "関東", code: "11", aliases: [] },
+      { pref: "千葉県", capital: "千葉市", area: "関東", code: "12", aliases: [] },
+      { pref: "東京都", capital: "新宿区", area: "関東", code: "13", aliases: ["東京"] },
+      { pref: "神奈川県", capital: "横浜市", area: "関東", code: "14", aliases: [] },
+      { pref: "新潟県", capital: "新潟市", area: "中部", code: "15", aliases: [] },
+      { pref: "富山県", capital: "富山市", area: "中部", code: "16", aliases: [] },
+      { pref: "石川県", capital: "金沢市", area: "中部", code: "17", aliases: [] },
+      { pref: "福井県", capital: "福井市", area: "中部", code: "18", aliases: [] },
+      { pref: "山梨県", capital: "甲府市", area: "中部", code: "19", aliases: [] },
+      { pref: "長野県", capital: "長野市", area: "中部", code: "20", aliases: [] },
+      { pref: "岐阜県", capital: "岐阜市", area: "中部", code: "21", aliases: [] },
+      { pref: "静岡県", capital: "静岡市", area: "中部", code: "22", aliases: [] },
+      { pref: "愛知県", capital: "名古屋市", area: "中部", code: "23", aliases: [] },
+      { pref: "三重県", capital: "津市", area: "近畿", code: "24", aliases: [] },
+      { pref: "滋賀県", capital: "大津市", area: "近畿", code: "25", aliases: [] },
+      { pref: "京都府", capital: "京都市", area: "近畿", code: "26", aliases: [] },
+      { pref: "大阪府", capital: "大阪市", area: "近畿", code: "27", aliases: [] },
+      { pref: "兵庫県", capital: "神戸市", area: "近畿", code: "28", aliases: [] },
+      { pref: "奈良県", capital: "奈良市", area: "近畿", code: "29", aliases: [] },
+      { pref: "和歌山県", capital: "和歌山市", area: "近畿", code: "30", aliases: [] },
+      { pref: "鳥取県", capital: "鳥取市", area: "中国・四国", code: "31", aliases: [] },
+      { pref: "島根県", capital: "松江市", area: "中国・四国", code: "32", aliases: [] },
+      { pref: "岡山県", capital: "岡山市", area: "中国・四国", code: "33", aliases: [] },
+      { pref: "広島県", capital: "広島市", area: "中国・四国", code: "34", aliases: [] },
+      { pref: "山口県", capital: "山口市", area: "中国・四国", code: "35", aliases: [] },
+      { pref: "徳島県", capital: "徳島市", area: "中国・四国", code: "36", aliases: [] },
+      { pref: "香川県", capital: "高松市", area: "中国・四国", code: "37", aliases: [] },
+      { pref: "愛媛県", capital: "松山市", area: "中国・四国", code: "38", aliases: [] },
+      { pref: "高知県", capital: "高知市", area: "中国・四国", code: "39", aliases: [] },
+      { pref: "福岡県", capital: "福岡市", area: "九州・沖縄", code: "40", aliases: [] },
+      { pref: "佐賀県", capital: "佐賀市", area: "九州・沖縄", code: "41", aliases: [] },
+      { pref: "長崎県", capital: "長崎市", area: "九州・沖縄", code: "42", aliases: [] },
+      { pref: "熊本県", capital: "熊本市", area: "九州・沖縄", code: "43", aliases: [] },
+      { pref: "大分県", capital: "大分市", area: "九州・沖縄", code: "44", aliases: [] },
+      { pref: "宮崎県", capital: "宮崎市", area: "九州・沖縄", code: "45", aliases: [] },
+      { pref: "鹿児島県", capital: "鹿児島市", area: "九州・沖縄", code: "46", aliases: [] },
+      { pref: "沖縄県", capital: "那覇市", area: "九州・沖縄", code: "47", aliases: [] }
+    ];
+
+    const AREA_MAP = {
+      "all": null,
+      "hokkaido-tohoku": "北海道・東北",
+      "kanto": "関東",
+      "chubu": "中部",
+      "kinki": "近畿",
+      "chugoku-shikoku": "中国・四国",
+      "kyushu-okinawa": "九州・沖縄"
+    };
+
+    const MODE_LABELS = {
+      "all": "全国",
+      "hokkaido-tohoku": "北海道・東北",
+      "kanto": "関東",
+      "chubu": "中部",
+      "kinki": "近畿",
+      "chugoku-shikoku": "中国・四国",
+      "kyushu-okinawa": "九州・沖縄",
+      "missed": "まちがえた問題だけ"
+    };
+
+    let questions = [];
+    let index = 0;
+    let score = 0;
+    let checked = false;
+    let missed = [];
+    let lastMissed = [];
+    let hintLevel = 0;
+    let answerStatus = {};
+    let mapSvgDoc = null;
+    let mapReady = false;
+
+    const $ = (id) => document.getElementById(id);
+
+    function normalize(text) {
+      return text.trim().replace(/[　\s]/g, "");
+    }
+
+    function shuffle(array) {
+      const copied = [...array];
+      for (let i = copied.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [copied[i], copied[j]] = [copied[j], copied[i]];
+      }
+      return copied;
+    }
+
+    function buildQuestions(mode) {
+      if (mode === "missed") {
+        return shuffle(lastMissed.length ? lastMissed : missed);
+      }
+      const area = AREA_MAP[mode];
+      const source = area ? DATA.filter(item => item.area === area) : DATA;
+      return shuffle(source);
+    }
+
+    function getPrefElement(code) {
+      if (!mapSvgDoc) return null;
+      return mapSvgDoc.querySelector(`[data-code="${code}"]`);
+    }
+
+    function findByPref(prefName) {
+      return DATA.find(item => item.pref === prefName);
+    }
+
+    function markSymbol(ok) {
+      return ok ? "○" : "×";
+    }
+
+    function markClass(ok) {
+      return ok ? "mark-ok" : "mark-ng";
+    }
+
+    function initMap() {
+      const mapObject = $("japanMapObject");
+      mapObject.addEventListener("load", () => {
+        mapSvgDoc = mapObject.contentDocument;
+        mapReady = Boolean(mapSvgDoc);
+
+        if (!mapReady) {
+          $("result").className = "result bad";
+          $("result").innerHTML = "地図SVGを読み込めませんでした。HTMLと同じフォルダに map-full.svg があるか確認してください。";
+          return;
+        }
+
+        DATA.forEach(item => {
+          const el = getPrefElement(item.code);
+          if (!el) return;
+          el.style.fill = "#ffffff";
+          el.style.stroke = "#111827";
+          el.style.strokeWidth = "1";
+          el.style.transition = "fill 0.2s ease";
+        });
+
+        renderMap();
+      });
+
+      window.addEventListener("resize", () => {
+        if (mapReady) renderMap();
+      });
+    }
+
+    function clearLabels() {
+      $("labelLayer").innerHTML = "";
+    }
+
+    function addMapLabel(item, status) {
+      const el = getPrefElement(item.code);
+      const mapObject = $("japanMapObject");
+      const layer = $("labelLayer");
+      if (!el || !mapObject || !layer) return;
+
+      const prefRect = el.getBoundingClientRect();
+      const mapRect = mapObject.getBoundingClientRect();
+      const centerX = prefRect.left + prefRect.width / 2 - mapRect.left;
+      const centerY = prefRect.top + prefRect.height / 2 - mapRect.top;
+      const allOk = status.prefOk && status.capitalOk;
+
+      const label = document.createElement("div");
+      label.className = `map-label ${allOk ? "all-ok" : "has-miss"}`;
+      label.style.left = `${centerX}px`;
+      label.style.top = `${centerY}px`;
+      label.innerHTML = `
+        <div><span class="${markClass(status.prefOk)}">${markSymbol(status.prefOk)}</span>：${item.pref}</div>
+        <div><span class="${markClass(status.capitalOk)}">${markSymbol(status.capitalOk)}</span>：${item.capital}</div>
+      `;
+      layer.appendChild(label);
+    }
+
+    function renderMap() {
+      if (!mapReady) return;
+      clearLabels();
+
+      DATA.forEach(item => {
+        const el = getPrefElement(item.code);
+        if (!el) return;
+        el.style.fill = "#ffffff";
+        el.style.stroke = "#111827";
+      });
+
+      Object.entries(answerStatus).forEach(([prefName, status]) => {
+        const item = findByPref(prefName);
+        if (!item) return;
+        const el = getPrefElement(item.code);
+        if (!el) return;
+        const allOk = status.prefOk && status.capitalOk;
+        el.style.fill = allOk ? "#dcfce7" : "#ffedd5";
+        addMapLabel(item, status);
+      });
+
+      if (index < questions.length && !checked) {
+        const current = questions[index];
+        const el = getPrefElement(current.code);
+        if (el) el.style.fill = "#fecaca";
+      }
+    }
+
+    function start(mode = $("modeSelect").value) {
+      questions = buildQuestions(mode);
+      index = 0;
+      score = 0;
+      checked = false;
+      missed = [];
+      hintLevel = 0;
+      answerStatus = {};
+
+      if (mode === "missed" && questions.length === 0) {
+        $("result").className = "result bad";
+        $("result").innerHTML = "復習する問題がまだありません。まずは全国モードなどで挑戦してください。";
+        $("modeSelect").value = "all";
+        questions = buildQuestions("all");
+      }
+
+      $("summary").style.display = "none";
+      $("totalNo").textContent = questions.length;
+      $("score").textContent = score;
+      $("modeName").textContent = MODE_LABELS[$("modeSelect").value];
+      showQuestion();
+    }
+
+    function showQuestion() {
+      if (index >= questions.length) {
+        finish();
+        return;
+      }
+
+      checked = false;
+      hintLevel = 0;
+      $("currentNo").textContent = index + 1;
+      $("totalNo").textContent = questions.length;
+      $("score").textContent = score;
+      $("modeName").textContent = MODE_LABELS[$("modeSelect").value];
+      $("questionLabel").textContent = "Q. 赤く塗られている県は？";
+      $("questionText").textContent = "白地図で赤く塗られた場所を答えよう";
+      $("hintText").textContent = "ヒント：都道府県名と県庁所在地を両方とも漢字で入力しよう。";
+      $("prefInput").value = "";
+      $("capitalInput").value = "";
+      $("prefInput").focus();
+      $("result").className = "result";
+      $("result").textContent = "赤く塗られている県の、都道府県名と県庁所在地を入力してください。";
+      updateProgress();
+      renderMap();
+    }
+
+    function checkAnswer() {
+      if (index >= questions.length || checked) return;
+
+      const q = questions[index];
+      const prefAnswer = normalize($("prefInput").value);
+      const capitalAnswer = normalize($("capitalInput").value);
+      const prefOk = prefAnswer === q.pref;
+      const capitalOk = capitalAnswer === q.capital || q.aliases.includes(capitalAnswer);
+      checked = true;
+
+      answerStatus[q.pref] = { prefOk, capitalOk };
+
+      if (prefOk && capitalOk) {
+        score++;
+        $("score").textContent = score;
+        $("result").className = "result good";
+        $("result").innerHTML = `正解！<strong>${q.pref}</strong> の県庁所在地は <strong>${q.capital}</strong> です。`;
+      } else {
+        missed.push(q);
+        $("result").className = "result bad";
+        $("result").innerHTML = `不正解。正解は <strong>${q.pref}</strong> / <strong>${q.capital}</strong> です。<br>
+          あなたの回答：${prefAnswer || "未入力"} / ${capitalAnswer || "未入力"}<br>
+          地図には正答名だけを表示し、間違えた方に × を付けています。`;
+      }
+
+      updateProgress();
+      renderMap();
+    }
+
+    function showHint() {
+      if (index >= questions.length) return;
+      const q = questions[index];
+      hintLevel++;
+
+      if (hintLevel === 1) {
+        $("hintText").textContent = `ヒント1：地方は「${q.area}」です。`;
+      } else if (hintLevel === 2) {
+        $("hintText").textContent = `ヒント2：都道府県名は「${q.pref[0]}」から始まります。`;
+      } else {
+        $("hintText").textContent = `ヒント3：県庁所在地は「${q.capital[0]}」から始まります。`;
+      }
+    }
+
+    function nextQuestion() {
+      if (!checked) {
+        checkAnswer();
+        return;
+      }
+      index++;
+      showQuestion();
+    }
+
+    function updateProgress() {
+      const done = checked ? index + 1 : index;
+      const percent = questions.length ? (done / questions.length) * 100 : 0;
+      $("progress").style.width = `${percent}%`;
+    }
+
+    function finish() {
+      lastMissed = [...missed];
+      $("summary").style.display = "block";
+      $("questionText").textContent = "終了！";
+      $("hintText").textContent = "結果を確認して、まちがえた問題を復習しよう。";
+      $("result").className = score === questions.length ? "result good" : "result";
+      $("result").textContent = "おつかれさま！";
+      $("summaryText").innerHTML = `得点：<strong>${score}</strong> / <strong>${questions.length}</strong>　正答率：<strong>${Math.round((score / questions.length) * 100)}</strong>%`;
+      $("missList").innerHTML = missed.length
+        ? missed.map(item => {
+            const status = answerStatus[item.pref];
+            const prefMark = status ? markSymbol(status.prefOk) : "×";
+            const capitalMark = status ? markSymbol(status.capitalOk) : "×";
+            const prefClass = status ? markClass(status.prefOk) : "mark-ng";
+            const capitalClass = status ? markClass(status.capitalOk) : "mark-ng";
+            return `<div class="miss-card">
+              <strong>${item.pref}</strong><br>
+              <span class="${prefClass}">${prefMark}</span>：${item.pref}<br>
+              <span class="${capitalClass}">${capitalMark}</span>：${item.capital}<br>
+              <small>${item.area}</small>
+            </div>`;
+          }).join("")
+        : `<div class="miss-card"><strong>全問正解！</strong><br>まちがえた問題はありません。</div>`;
+      $("progress").style.width = "100%";
+      renderMap();
+    }
+
+    $("checkBtn").addEventListener("click", checkAnswer);
+    $("hintBtn").addEventListener("click", showHint);
+    $("nextBtn").addEventListener("click", nextQuestion);
+    $("restartBtn").addEventListener("click", () => start($("modeSelect").value));
+    $("modeSelect").addEventListener("change", () => start($("modeSelect").value));
+    $("reviewBtn").addEventListener("click", () => {
+      $("modeSelect").value = "missed";
+      start("missed");
+    });
+    $("allAgainBtn").addEventListener("click", () => {
+      $("modeSelect").value = "all";
+      start("all");
+    });
+
+    document.addEventListener("keydown", (event) => {
+      if (event.key === "Enter") {
+        if (!checked) checkAnswer();
+        else nextQuestion();
+      }
+    });
+
+    initMap();
+    start("all");
+  </script>
+</body>
+</html>
